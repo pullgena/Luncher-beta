@@ -1,0 +1,78 @@
+{
+  "name": "easycraft-launcher",
+  "version": "0.4.13-beta.11",
+  "description": "EasyCraft Launcher 0.4.13-beta.11 - EasyCraft account with client-encrypted Microsoft/Minecraft vault sync",
+  "main": "src/main.js",
+  "author": "EasyCraft Launcher",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "prepare:build": "node scripts/configure-account-server.js && node scripts/write-build-info.js",
+    "dist:win": "npm run prepare:build && electron-builder --win nsis",
+    "dist:portable": "npm run prepare:build && electron-builder --win portable",
+    "test:smoke": "node scripts/smoke-test.js"
+  },
+  "dependencies": {
+    "electron-updater": "6.8.9",
+    "minecraft-java-core": "4.2.9",
+    "adm-zip": "0.5.16"
+  },
+  "devDependencies": {
+    "electron": "44.0.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "com.easycraft.launcher",
+    "productName": "EasyCraft Launcher",
+    "asar": true,
+    "asarUnpack": [
+      "src/minecraft-worker.js",
+      "node_modules/minecraft-java-core/**",
+      "node_modules/7zip-bin/**",
+      "node_modules/prompt/**",
+      "node_modules/semver/**",
+      "node_modules/tslib/**"
+    ],
+    "files": [
+      "src/**/*",
+      "package.json",
+      "node_modules/**/*"
+    ],
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "pullgena",
+        "repo": "EasyCraft_Launcher",
+        "releaseType": "release"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "artifactName": "EasyCraft-Launcher-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "EasyCraft Launcher",
+      "include": "build/installer.nsh"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pullgena/EasyCraft_Launcher.git"
+  }
+}

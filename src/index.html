@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EasyCraft Launcher</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="rail">
+      <div class="rail-logo"><img src="app-icon.png" alt="EasyCraft"></div>
+      <nav class="nav" aria-label="메인 메뉴">
+        <button class="nav-btn active" data-view="home" title="플레이"><span>▶</span><em>플레이</em></button>
+        <button class="nav-btn" data-view="content" title="콘텐츠"><span>◆</span><em>콘텐츠</em></button>
+        <button class="nav-btn" data-view="logs" title="로그"><span>≡</span><em>로그</em></button>
+        <button class="nav-btn" data-view="settings" title="설정"><span>⚙</span><em>설정</em></button>
+      </nav>
+      <div class="rail-space"></div>
+      <button class="account-orb" id="accountPanel" type="button" title="계정">
+        <div class="avatar" id="accountAvatar">?</div>
+        <div class="account-hover"><strong id="accountName">로그인 필요</strong><span id="accountSub">EasyCraft 계정</span></div>
+      </button>
+      <button class="rail-account-action" id="railLoginBtn" type="button">로그인</button>
+      <button class="rail-account-action hidden" id="railLogoutBtn" type="button">로그아웃</button>
+      <div class="version-foot" id="versionFoot">EasyCraft</div>
+    </aside>
+
+    <section class="shell">
+      <header class="floating-header">
+        <div id="pageHeading">
+          <span class="kicker" id="pageKicker">EASYCRAFT PLAY</span>
+          <h1 id="pageTitle">Minecraft를 시작하세요</h1>
+        </div>
+        <div class="header-side">
+          <button class="selected-chip" id="selectedChip">인스턴스 없음</button>
+          <button class="icon-button" id="openInstanceFolderBtn" title="인스턴스 폴더 열기">↗</button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="view active home-view" id="view-home">
+          <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div><div class="grid-haze"></div>
+
+          <div class="home-center">
+            <div class="instance-label" id="heroBadge">새 인스턴스를 만들어 시작하세요</div>
+            <h2 class="hero-title" id="heroName">Minecraft를 준비해 볼까요?</h2>
+            <p class="hero-meta" id="heroMeta">버전과 로더를 고르고, 원하는 모드를 바로 설치해 플레이할 수 있습니다.</p>
+            <button class="play-main" id="playBtn"><span class="play-symbol">▶</span><span>게임 실행</span></button>
+            <div class="hero-links">
+              <button id="heroSettingsBtn">인스턴스 설정</button>
+              <span></span>
+              <button id="heroContentBtn">콘텐츠 찾기</button>
+            </div>
+          </div>
+
+          <div class="content-shortcuts" aria-label="빠른 콘텐츠">
+            <button class="quick-card" data-content="mods"><b>MODS</b><span>모드 찾기</span><i>→</i></button>
+            <button class="quick-card" data-content="resourcepacks"><b>PACKS</b><span>리소스팩</span><i>→</i></button>
+            <button class="quick-card hidden" id="shaderQuick" data-content="shaderpacks"><b>SHADERS</b><span>셰이더</span><i>→</i></button>
+            <button class="quick-card" data-content="modpacks"><b>MODPACKS</b><span>모드팩</span><i>→</i></button>
+          </div>
+
+          <div class="profiles-dock">
+            <div class="dock-head">
+              <div><span>PROFILES</span><strong>플레이할 인스턴스</strong></div>
+              <button id="newInstanceBtn">＋ 새 인스턴스</button>
+            </div>
+            <div class="instance-grid" id="instanceGrid"></div>
+          </div>
+        </section>
+
+        <section class="view content-view" id="view-content">
+          <div class="flat-head">
+            <div><span class="kicker">MODRINTH</span><h2>콘텐츠</h2><p id="contentContext">선택한 인스턴스에 바로 설치합니다.</p></div>
+            <div class="flat-actions"><button id="contentUpdatesBtn">업데이트 확인</button><button id="contentFolderBtn">폴더 열기</button></div>
+          </div>
+
+          <div class="content-tabs" id="contentTabs">
+            <button class="content-tab active" data-type="mods">모드</button>
+            <button class="content-tab" data-type="resourcepacks">리소스팩</button>
+            <button class="content-tab hidden" id="shaderTab" data-type="shaderpacks">셰이더</button>
+            <button class="content-tab" data-type="modpacks">모드팩</button>
+          </div>
+
+          <div class="library-flow">
+            <section class="market-panel">
+              <div class="library-title"><div><h3>Modrinth에서 찾기</h3><p>호환되는 인기 콘텐츠를 바로 보여드립니다.</p></div></div>
+              <div class="search-row"><span class="search-mark">⌕</span><input id="searchInput" class="input search-input" placeholder="입력하면 자동으로 검색됩니다" /><span class="search-live" id="searchLiveStatus">자동 검색</span></div>
+              <div class="update-strip hidden" id="contentUpdateStrip"><span id="contentUpdateText"></span></div>
+              <div class="search-pager hidden" id="searchPagerTop"></div>
+              <div class="result-list" id="searchResults"><div class="empty">Modrinth 인기 콘텐츠를 불러오는 중…</div></div>
+              <div class="search-pager hidden" id="searchPagerBottom"></div>
+            </section>
+
+            <aside class="installed-panel">
+              <div class="installed-head"><div><span>INSTALLED</span><h3>설치됨 <em id="installedCount">0</em></h3></div><button id="pickLocalContentBtn" title="직접 파일 추가">＋</button></div>
+              <div class="installed-tools" id="installedTools">
+                <label class="bulk-check"><input type="checkbox" id="selectAllInstalled" /><span>전체 선택</span></label>
+                <div class="bulk-buttons">
+                  <button id="updateSelectedContentBtn" class="hidden" disabled>선택 업데이트</button>
+                  <button id="deleteSelectedContentBtn" class="danger" disabled>선택 삭제</button>
+                </div>
+                <div class="all-buttons">
+                  <button id="updateAllContentBtn" class="hidden">전체 업데이트</button>
+                  <button id="deleteAllContentBtn" class="danger">전체 삭제</button>
+                </div>
+              </div>
+              <div class="installed-list" id="installedList"><div class="empty">설치된 콘텐츠가 없습니다.</div></div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="view logs-view" id="view-logs">
+          <div class="flat-head log-head">
+            <div><span class="kicker">LIVE LOGS</span><h2>실시간 로그</h2><p id="logContext">선택한 인스턴스의 Minecraft 로그를 표시합니다.</p></div>
+            <div class="flat-actions"><button id="refreshLogsBtn">새로고침</button><button id="clearLogsBtn">로그 지우기</button></div>
+          </div>
+          <div class="log-toolbar">
+            <span class="log-live"><i></i><b id="logLiveState">대기 중</b></span>
+            <label class="log-autoscroll"><input type="checkbox" id="logAutoScroll" checked /><span>자동 스크롤</span></label>
+          </div>
+          <pre class="log-terminal" id="logTerminal">인스턴스를 선택하면 로그를 불러옵니다.</pre>
+        </section>
+
+        <section class="view settings-view" id="view-settings">
+          <div class="flat-head settings-heading"><div><span class="kicker">SETTINGS</span><h2>설정</h2><p>필요한 것만 빠르게 관리하세요.</p></div></div>
+          <div class="settings-stream">
+            <section class="setting-row">
+              <div class="setting-index">01</div>
+              <div class="setting-copy"><span>ACCOUNT</span><h3 id="settingsAccountName">EasyCraft 계정에 로그인하지 않았습니다.</h3><p>EasyCraft 계정으로 로그인하면 집에서 연결한 Minecraft Java 계정을 학교 PC에서도 불러옵니다.</p></div>
+              <div class="setting-actions"><button class="setting-button primary" id="settingsLoginBtn" type="button">로그인</button><button class="setting-button danger hidden" id="settingsLogoutBtn" type="button">로그아웃</button></div>
+            </section>
+            <section class="setting-row">
+              <div class="setting-index">02</div>
+              <div class="setting-copy"><span>INSTANCE</span><h3 id="settingsInstanceName">인스턴스 없음</h3><p>RAM, Java, 해상도, 버전과 모드 로더를 설정합니다.</p></div>
+              <div class="setting-actions"><button class="setting-button" id="settingsInstanceBtn">인스턴스 설정</button></div>
+            </section>
+            <section class="setting-row update-row">
+              <div class="setting-index">03</div>
+              <div class="setting-copy"><span>UPDATE</span><h3 id="updateStatusTitle">업데이트 상태 확인 중</h3><p id="updateStatusText">프로그램을 시작할 때 최신 버전을 확인합니다.</p><div class="thin-progress"><span id="updateProgress"></span></div></div>
+              <div class="setting-actions wrap"><button class="setting-button hidden" id="settingsReleaseNotesBtn">업데이트 내역 보기</button><button class="setting-button" id="manualUpdateCheckBtn">업데이트 확인</button><button class="setting-button primary hidden" id="settingsUpdateActionBtn">업데이트</button></div>
+            </section>
+            <section class="setting-row">
+              <div class="setting-index">04</div>
+              <div class="setting-copy"><span>LOGS</span><h3>로그 자동 삭제</h3><p>7일이 지난 로그와 오래된 로그 파일을 자동으로 정리합니다.</p></div>
+              <div class="setting-actions"><label class="switch-line setting-switch"><input type="checkbox" id="autoDeleteLogsToggle" checked /><span>자동 삭제</span></label></div>
+            </section>
+            <section class="setting-row">
+              <div class="setting-index">05</div>
+              <div class="setting-copy"><span>FILES</span><h3>인스턴스 파일</h3><p>현재 인스턴스의 Minecraft 폴더를 엽니다.</p></div>
+              <div class="setting-actions"><button class="setting-button" id="settingsOpenFolderBtn">폴더 열기</button></div>
+            </section>
+            <section class="setting-row uninstall-row">
+              <div class="setting-index">06</div>
+              <div class="setting-copy"><span>UNINSTALL</span><h3>EasyCraft Launcher 삭제</h3><p>런처와 EasyCraft가 관리하는 Minecraft 데이터를 이 PC에서 제거합니다.</p></div>
+              <div class="setting-actions"><button class="setting-button danger" id="uninstallEasyCraftBtn">EasyCraft 삭제</button></div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </section>
+  </div>
+
+  <div class="startup-gate" id="startupGate">
+    <div class="gate-card">
+      <div class="gate-logo"><img src="app-icon.png" alt="EasyCraft"></div>
+      <div id="gateChecking"><span class="kicker">EASYCRAFT UPDATE</span><h2>최신 버전을 확인하고 있습니다</h2><p>업데이트 서버가 느려도 잠시 후 EasyCraft가 자동으로 열립니다.</p><div class="loader-line"><span></span></div></div>
+      <div class="hidden" id="gateAvailable">
+        <span class="gate-badge">NEW VERSION</span><h2 id="gateUpdateTitle">EasyCraft 업데이트가 있습니다</h2><p id="gateUpdateDescription">최신 버전으로 업데이트하시겠어요?</p>
+        <div class="gate-progress hidden" id="gateProgressWrap"><span id="gateProgress"></span></div>
+        <div class="gate-actions"><button class="btn subtle" id="gateReleaseNotesBtn">업데이트 내역 보기</button><button class="btn subtle" id="updateLaterBtn">나중에</button><button class="btn primary" id="updateNowBtn">업데이트</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="launch-pop hidden" id="launchPop">
+    <div class="launch-pop-head"><span class="pulse-dot"></span><strong id="launchPopTitle">Minecraft 준비 중</strong></div>
+    <p id="launchPopText">필요한 파일을 확인하고 있습니다.</p>
+    <div class="thin-progress"><span id="launchProgress"></span></div>
+    <button class="btn danger small" id="launchPopStopBtn">■ 중지</button>
+  </div>
+
+
+  <div class="modal hidden" id="launcherLoginModal">
+    <div class="modal-card launcher-login-card">
+      <div class="modal-head"><div><span class="setting-label">EASYCRAFT ACCOUNT</span><h2>EasyCraft 로그인</h2></div><button class="close-btn" data-close="launcherLoginModal">×</button></div>
+      <p class="launcher-login-copy">Microsoft 비밀번호가 아니라 EasyCraft 전용 계정으로 로그인합니다.</p>
+      <label for="launcherAccountId">ID</label>
+      <input class="input" id="launcherAccountId" autocomplete="username" spellcheck="false" placeholder="EasyCraft ID" />
+      <label for="launcherAccountPassword">비밀번호</label>
+      <input class="input" id="launcherAccountPassword" type="password" autocomplete="current-password" placeholder="EasyCraft 비밀번호" />
+      <p class="launcher-login-status" id="launcherLoginStatus">집에서 한 번 연결해 두면 학교 PC에서는 EasyCraft 계정 로그인만으로 Minecraft 계정을 불러옵니다.</p>
+      <div class="minecraft-link-box hidden" id="minecraftLinkBox">
+        <strong>Microsoft Minecraft 계정 연결이 필요합니다.</strong>
+        <span>Microsoft 로그인이 허용된 집 PC 등에서 처음 한 번만 연결하세요. 학교 PC에서는 Microsoft 로그인 화면 없이 EasyCraft 계정으로 동기화를 시도합니다.</span>
+        <button class="btn primary" id="minecraftLinkBtn" type="button">Microsoft Minecraft 계정 연결</button>
+      </div>
+      <div class="modal-actions"><button class="btn subtle" id="launcherLoginCancelBtn" type="button">취소</button><button class="btn primary" id="launcherLoginConfirmBtn" type="button">로그인</button></div>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="createModal">
+    <div class="modal-card">
+      <div class="modal-head"><div><span class="setting-label">NEW PROFILE</span><h2>새 인스턴스</h2></div><button class="close-btn" data-close="createModal">×</button></div>
+      <label>이름</label><input class="input" id="createName" maxlength="40" placeholder="예: 야생 모드팩, 친구 서버" />
+      <div class="form-grid"><div><label>Minecraft 버전</label><select class="input" id="createVersion"></select></div><div><label>모드 로더</label><select class="input" id="createLoader"><option value="vanilla">Vanilla</option><option value="fabric">Fabric</option><option value="forge">Forge</option><option value="neoforge">NeoForge</option><option value="quilt">Quilt</option></select></div><div class="hidden" id="createLoaderVersionWrap"><label>모드 로더 버전</label><select class="input" id="createLoaderVersion"><option value="latest">최신 자동</option></select></div></div>
+      <div class="modal-actions"><button class="btn subtle" data-close="createModal">취소</button><button class="btn primary" id="createConfirmBtn">인스턴스 만들기</button></div>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="instanceModal">
+    <div class="modal-card large">
+      <div class="modal-head"><div><span class="setting-label">PROFILE SETTINGS</span><h2>인스턴스 설정</h2></div><button class="close-btn" data-close="instanceModal">×</button></div>
+      <div class="form-grid"><div><label>이름</label><input class="input" id="editName" maxlength="40" /></div><div><label>Minecraft 버전</label><select class="input" id="editVersion"></select></div><div><label>모드 로더</label><select class="input" id="editLoader"><option value="vanilla">Vanilla</option><option value="fabric">Fabric</option><option value="forge">Forge</option><option value="neoforge">NeoForge</option><option value="quilt">Quilt</option></select></div><div class="hidden" id="editLoaderVersionWrap"><label>모드 로더 버전</label><select class="input" id="editLoaderVersion"><option value="latest">최신 자동</option></select></div><div><label>콘텐츠 자동 업데이트</label><label class="switch-line"><input type="checkbox" id="editAutoContent" /><span>게임 종료 후 확인</span></label></div><div><label>Minecraft 버전 자동 업데이트</label><label class="switch-line"><input type="checkbox" id="editAutoMinecraftVersion" /><span>실행 전 최신 정식 버전 확인</span></label></div><div class="hidden" id="editAutoLoaderWrap"><label>모드 로더 자동 업데이트</label><label class="switch-line"><input type="checkbox" id="editAutoLoaderVersion" /><span>현재 Minecraft와 호환되는 최신 로더</span></label></div><div><label>최소 RAM (GB)</label><input class="input" type="number" min="1" max="32" id="editMinRam" /></div><div><label>최대 RAM (GB)</label><input class="input" type="number" min="1" max="64" id="editMaxRam" /></div><div><label>창 너비</label><input class="input" type="number" min="640" max="7680" id="editWidth" /></div><div><label>창 높이</label><input class="input" type="number" min="480" max="4320" id="editHeight" /></div></div><div class="version-tools"><button class="btn subtle" id="checkInstanceVersionsBtn">버전 업데이트 확인</button><span id="instanceVersionHint">Minecraft와 모드 로더의 최신 버전을 확인할 수 있습니다.</span></div>
+      <label class="switch-line"><input type="checkbox" id="editFullscreen" /><span>전체화면으로 실행</span></label>
+      <label>Java 경로 <small>비워두면 EasyCraft가 자동으로 준비합니다.</small></label><div class="path-row"><input class="input" id="editJavaPath" placeholder="자동" /><button class="btn subtle" id="pickJavaBtn">찾기</button></div>
+      <div class="advanced"><details><summary>고급 실행 옵션</summary><label>JVM 옵션 <small>한 줄에 하나</small></label><textarea class="input area" id="editJvmArgs"></textarea><label>게임 옵션 <small>한 줄에 하나</small></label><textarea class="input area" id="editGameArgs"></textarea></details></div>
+      <div class="modal-actions split"><button class="btn danger" id="deleteInstanceBtn">인스턴스 삭제</button><div><button class="btn subtle" data-close="instanceModal">취소</button><button class="btn primary" id="saveInstanceBtn">저장</button></div></div>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="dependencyModal">
+    <div class="modal-card dependency-card">
+      <div class="modal-head"><div><span class="setting-label">REQUIRED MODS</span><h2>필수 모드가 필요해요</h2></div></div>
+      <p class="dependency-message" id="dependencyMessage"></p>
+      <div class="dependency-list" id="dependencyList"></div>
+      <div class="modal-actions"><button class="btn subtle" id="dependencyCancelBtn">아니요</button><button class="btn primary dependency-yes" id="dependencyConfirmBtn">예</button></div>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="contentDetailModal">
+    <div class="modal-card content-detail-card">
+      <div class="modal-head"><div><span class="setting-label" id="contentDetailKind">MODRINTH</span><h2 id="contentDetailTitle">콘텐츠 정보</h2></div><button class="close-btn" data-close="contentDetailModal">×</button></div>
+      <div class="content-detail-hero">
+        <img class="content-detail-icon hidden" id="contentDetailIcon" alt="" />
+        <div class="content-detail-placeholder" id="contentDetailPlaceholder">◇</div>
+        <div class="content-detail-summary"><div class="detail-status" id="contentDetailStatus">확인 중</div><p id="contentDetailDescription">정보를 불러오고 있습니다.</p></div>
+      </div>
+      <div class="content-detail-meta" id="contentDetailMeta"></div>
+      <div class="modal-actions" id="contentDetailActions"><button class="btn subtle" data-close="contentDetailModal">닫기</button></div>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="confirmModal">
+    <div class="modal-card confirm-card">
+      <div class="modal-head"><div><span class="setting-label">EASYCRAFT</span><h2 id="confirmTitle">확인</h2></div></div>
+      <p class="confirm-message" id="confirmMessage"></p>
+      <div class="modal-actions"><button class="btn subtle" id="confirmNoBtn">아니요</button><button class="btn primary" id="confirmYesBtn">예</button></div>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="uninstallModal">
+    <div class="modal-card confirm-card uninstall-confirm-card">
+      <div class="modal-head"><div><span class="setting-label">GOODBYE</span><h2>EasyCraft Launcher를 떠나시나요..?</h2></div></div>
+      <p class="confirm-message uninstall-warning">EasyCraft Launcher를 삭제하면 마인크래프트의 월드, 모드등은 전부 삭제 됩니다!</p>
+      <div class="modal-actions"><button class="btn danger" id="uninstallYesBtn">예</button><button class="btn subtle" id="uninstallNoBtn">아니요</button></div>
+    </div>
+  </div>
+
+  <div class="toast hidden" id="toast"></div>
+  <script src="renderer.js"></script>
+</body>
+</html>

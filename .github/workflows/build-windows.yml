@@ -1,0 +1,58 @@
+name: Build Windows EXE
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run smoke checks
+        run: npm run test:smoke
+
+      - name: Build Windows installer
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: npm run dist:win -- --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          EASYCRAFT_ACCOUNT_SERVER_URL: ${{ secrets.EASYCRAFT_ACCOUNT_SERVER_URL }}
+
+      - name: Build and publish update release
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        run: npm run dist:win -- --publish always
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          EASYCRAFT_ACCOUNT_SERVER_URL: ${{ secrets.EASYCRAFT_ACCOUNT_SERVER_URL }}
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: EasyCraft-Launcher-Windows
+          path: |
+            dist/*.exe
+            dist/latest.yml
+            dist/*.blockmap
+          if-no-files-found: warn
