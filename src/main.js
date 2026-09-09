@@ -340,7 +340,7 @@ function friendlyMicrosoftAuthError(error) {
   if (/NO_MINECRAFT_ACCOUNT|minecraft profile/i.test(raw)) return '이 Microsoft 계정에 Minecraft Java 프로필이 없습니다.';
   if (/NO_MINECRAFT_ENTITLEMENTS/i.test(raw)) return '이 계정에서 Minecraft Java Edition 소유권을 확인하지 못했습니다.';
   if (/invalid app registration|AppRegInfo|XboxLive\.signin/i.test(raw)) return 'Microsoft/Xbox/Minecraft 인증 단계에서 로그인을 완료하지 못했습니다.';
-  if (/ECONN|ENOTFOUND|EAI_AGAIN|network|fetch failed|timeout|timed out/i.test(raw)) return 'Microsoft 인증 서버에 연결하지 못했습니다. 학교 네트워크가 백그라운드 인증 갱신까지 차단하는지 확인해 주세요.';
+  if (/ECONN|ENOTFOUND|EAI_AGAIN|network|fetch failed|timeout|timed out/i.test(raw)) return 'Microsoft 인증 서버와 통신하지 못했습니다. 인터넷 연결, DNS, 방화벽/보안 프로그램 또는 일시적인 Microsoft 서버 문제를 확인해 주세요.';
   return raw;
 }
 async function persistMicrosoftAccount(account) {
@@ -634,7 +634,11 @@ async function refreshAccountFromVault(session=null) {
       refreshed = stored;
       refreshed._easycraftRefreshWarning = friendlyMicrosoftAuthError(error);
     } else {
-      throw new Error(friendlyMicrosoftAuthError(error));
+      const refreshError = new Error(friendlyMicrosoftAuthError(error));
+      refreshError.needRelink = true;
+      refreshError.authStage = 'microsoft-refresh';
+      refreshError.technical = String(error?.error || error?.message || error || 'unknown');
+      throw refreshError;
     }
   }
   refreshed._easycraftAuthFlow = 'account-vault-v2';
@@ -647,9 +651,25 @@ async function refreshAccountFromVault(session=null) {
 async function launcherAccountLogin(username, password) {
   const login = await accountServerLogin(username, password);
   if (!login.vaultPresent) return { session:login.session, needLink:true, username:login.session.username };
-  const account = await refreshAccountFromVault(login.session);
-  const summary = await persistMicrosoftAccount(account);
-  return { session:login.session, needLink:false, username:login.session.username, account:summary };
+  try {
+    const account = await refreshAccountFromVault(login.session);
+    const summary = await persistMicrosoftAccount(account);
+    return { session:login.session, needLink:false, needRelink:false, username:login.session.username, account:summary };
+  } catch (error) {
+    // EasyCraft 계정 로그인 자체는 성공했습니다. 저장된 Microsoft refresh token만
+    // 갱신하지 못한 경우 로그인 세션을 버리지 않고, 인증 가능한 PC에서 재연결할 수 있게 합니다.
+    if (error?.needRelink) {
+      return {
+        session: login.session,
+        needLink: false,
+        needRelink: true,
+        username: login.session.username,
+        error: friendlyMicrosoftAuthError(error),
+        technical: String(error?.technical || '')
+      };
+    }
+    throw error;
+  }
 }
 async function startMinecraftAccountLink() {
   const session = await readLauncherSession();
@@ -1050,11 +1070,15 @@ ipcMain.handle('login-launcher-account', async (_event, username, password) => {
       send('status', { text: 'EasyCraft 계정에 로그인하고 있습니다…', kind: 'info' });
       const result = await launcherAccountLogin(username, password);
       if (result.needLink) {
-        send('status', { text: 'EasyCraft 로그인 완료 · Microsoft 로그인이 허용된 PC에서 Minecraft 계정을 한 번 연결해 주세요.', kind: 'info' });
-        return { ok:true, needLink:true, username:result.username };
+        send('status', { text: 'EasyCraft 로그인 완료 · Microsoft 로그인이 가능한 PC에서 Minecraft 계정을 한 번 연결해 주세요.', kind: 'info' });
+        return { ok:true, needLink:true, needRelink:false, username:result.username };
+      }
+      if (result.needRelink) {
+        send('status', { text: `EasyCraft 로그인 완료 · 저장된 Minecraft 인증을 갱신하지 못했습니다. 이 PC에서 다시 연결할 수 있습니다.`, kind: 'warning' });
+        return { ok:true, needLink:false, needRelink:true, username:result.username, error:result.error, technical:result.technical || '' };
       }
       send('status', { text: `${result.account?.name || 'Minecraft 계정'} 동기화 완료`, kind: 'success' });
-      return { ok:true, needLink:false, account:result.account, username:result.username };
+      return { ok:true, needLink:false, needRelink:false, account:result.account, username:result.username };
     } catch (error) {
       const message = friendlyMicrosoftAuthError(error);
       send('status', { text: `로그인 실패: ${message}`, kind: 'error' });

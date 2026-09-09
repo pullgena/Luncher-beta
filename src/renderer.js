@@ -217,10 +217,19 @@ async function submitLauncherLogin() {
       return;
     }
     if (r.needLink) {
-      $('#launcherLoginStatus').textContent=`${r.username||username} 계정 로그인 완료. Microsoft 로그인이 허용된 PC에서 처음 한 번 Minecraft 계정을 연결해 주세요.`;
+      $('#launcherLoginStatus').textContent=`${r.username||username} 계정 로그인 완료. Microsoft 로그인이 가능한 PC에서 처음 한 번 Minecraft 계정을 연결해 주세요.`;
+      $('#launcherLoginStatus').classList.remove('error');
       $('#minecraftLinkBox').classList.remove('hidden');
       $('#launcherLoginConfirmBtn').classList.add('hidden');
-      toast('EasyCraft 계정 로그인 완료 · 집/허용된 PC에서 Minecraft 계정을 한 번 연결해 주세요.');
+      toast('EasyCraft 계정 로그인 완료 · Minecraft 계정을 한 번 연결해 주세요.');
+      return;
+    }
+    if (r.needRelink) {
+      $('#launcherLoginStatus').textContent=`EasyCraft 계정 로그인은 성공했습니다. 다만 저장된 Microsoft 인증을 갱신하지 못했습니다. 이 PC에서 아래 버튼으로 Minecraft 계정을 다시 연결해 주세요. (${r.error||'인증 갱신 실패'})`;
+      $('#launcherLoginStatus').classList.add('error');
+      $('#minecraftLinkBox').classList.remove('hidden');
+      $('#launcherLoginConfirmBtn').classList.add('hidden');
+      toast('EasyCraft 로그인 성공 · Minecraft 계정 재연결이 필요합니다.');
       return;
     }
     state.account=r.account;
