@@ -359,7 +359,7 @@ async function persistMicrosoftAccount(account) {
 }
 function normalizeAccountServerUrl(value) {
   const raw = String(value || '').trim().replace(/\/+$/, '');
-  if (!raw) throw new Error('EasyCraft 계정 서버 주소가 빌드에 설정되어 있지 않습니다. SET_WEIRD_HOST_SERVER.bat을 먼저 실행해 주세요.');
+  if (!raw) throw new Error('EasyCraft 계정 서버 주소가 빌드에 설정되어 있지 않습니다. 빌드에 포함된 EasyCraft 계정 서버 주소를 확인해 주세요.');
   let url;
   try { url = new URL(raw); } catch { throw new Error('EasyCraft 계정 서버 주소 형식이 올바르지 않습니다.'); }
   if (!['http:','https:'].includes(url.protocol)) throw new Error('EasyCraft 계정 서버 주소는 http:// 또는 https:// 형식이어야 합니다.');
@@ -401,10 +401,10 @@ function wrapAccountServerError(error, stage='connect') {
 function friendlyAccountServerError(error) {
   const raw = String(error?.message || error || 'EasyCraft 계정 서버 오류');
   if (error?.scope === 'account-server-config' || /로컬 테스트용|계정 서버 주소가.*설정/i.test(raw)) {
-    return 'EasyCraft 계정 서버 주소가 빌드에 설정되지 않았습니다. Weird Host의 공개 서버 주소를 먼저 Launcher에 넣고 다시 빌드해 주세요.';
+    return 'EasyCraft 계정 서버 주소가 빌드에 설정되지 않았습니다. 배포 설정을 확인해 주세요.';
   }
-  if (/ENOTFOUND|EAI_AGAIN|getaddrinfo/i.test(raw)) return `EasyCraft 계정 서버 주소를 찾지 못했습니다 (${accountServerDisplayHost()}). Weird Host 주소가 맞는지 확인해 주세요.`;
-  if (/ECONNREFUSED|ECONNRESET|fetch failed|network|socket|timeout|timed out|응답 시간 초과/i.test(raw)) return `EasyCraft 계정 서버에 연결하지 못했습니다 (${accountServerDisplayHost()}). Weird Host 서버가 실행 중인지와 포트/주소를 확인해 주세요.`;
+  if (/ENOTFOUND|EAI_AGAIN|getaddrinfo/i.test(raw)) return `EasyCraft 계정 서버 주소를 찾지 못했습니다 (${accountServerDisplayHost()}). EasyCraft 계정 서버 도메인이 정상인지 확인해 주세요.`;
+  if (/ECONNREFUSED|ECONNRESET|fetch failed|network|socket|timeout|timed out|응답 시간 초과/i.test(raw)) return `EasyCraft 계정 서버에 연결하지 못했습니다 (${accountServerDisplayHost()}). Weird Host 서버와 ngrok 터널이 실행 중인지 확인해 주세요.`;
   if (/HTTP 404|Not Found/i.test(raw)) return `EasyCraft 계정 서버 주소가 올바르지 않습니다 (${accountServerDisplayHost()}). /health가 열리는 서버 주소인지 확인해 주세요.`;
   return raw;
 }
@@ -562,7 +562,7 @@ async function accountServerUnsigned(pathname, { method='GET', body=null, timeou
   catch (error) { throw wrapAccountServerError(error, 'config'); }
   const url = `${base}${pathname.startsWith('/') ? pathname : `/${pathname}`}`;
   const bodyText = body === null ? '' : JSON.stringify(body);
-  const headers = { 'Accept':'application/json', 'User-Agent':APP_UA };
+  const headers = { 'Accept':'application/json', 'User-Agent':APP_UA, 'ngrok-skip-browser-warning':'EasyCraft' };
   if (body !== null) headers['Content-Type'] = 'application/json';
   let res;
   try {
@@ -611,7 +611,7 @@ async function accountServerSigned(pathname, { method='GET', body=null, session=
   const nonce = crypto.randomBytes(18).toString('base64url');
   const signature = hmacHex(sessionKey, signedRequestCanonical(method, pathWithQuery, timestamp, nonce, bodyBuffer));
   const headers = {
-    'Accept':'application/json', 'User-Agent':APP_UA,
+    'Accept':'application/json', 'User-Agent':APP_UA, 'ngrok-skip-browser-warning':'EasyCraft',
     'X-EC-Session':saved.sessionId, 'X-EC-Time':String(timestamp), 'X-EC-Nonce':nonce, 'X-EC-Signature':signature
   };
   if (body !== null) headers['Content-Type'] = 'application/json';

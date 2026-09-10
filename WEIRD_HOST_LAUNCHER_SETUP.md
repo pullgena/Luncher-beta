@@ -1,9 +1,9 @@
-# Weird Host + ngrok Launcher 연결
+# Weird Host / ngrok — Launcher Beta 11.4
 
-서버의 `PUBLIC HTTPS TUNNEL`이 예를 들어 `https://my-easycraft.ngrok.app`이라면:
+런처에는 다음 계정 서버 도메인이 이미 포함되어 있습니다.
 
-1. `SET_NGROK_TUNNEL.bat` 실행
-2. `my-easycraft.ngrok.app` 입력
-3. `BUILD_EXE.bat` 실행
+```text
+https://waffle-gangway-actress.ngrok-free.dev
+```
 
-사용자 설정 화면에는 이 주소가 표시되지 않습니다.
+`SET_NGROK_TUNNEL.bat` 실행은 필요하지 않습니다. Weird Host에서 Account Server와 ngrok 터널만 실행 중이면 됩니다.

@@ -3,12 +3,13 @@ const path = require('path');
 const root = path.join(__dirname, '..');
 const target = path.join(root, 'src', 'account-server.json');
 const envValue = String(process.env.EASYCRAFT_ACCOUNT_SERVER_URL || '').trim();
+const DEFAULT_ACCOUNT_SERVER_URL = 'https://waffle-gangway-actress.ngrok-free.dev';
 let existing = '';
 try { existing = String(JSON.parse(fs.readFileSync(target, 'utf8')).baseUrl || '').trim(); } catch {}
-let value = envValue || existing;
+let value = envValue || existing || DEFAULT_ACCOUNT_SERVER_URL;
 if (value && !/^https?:\/\//i.test(value)) value = 'https://' + value;
 if (!value) {
-  console.error('BUILD BLOCKED: ngrok tunnel domain is missing. Run SET_NGROK_TUNNEL.bat or set EASYCRAFT_ACCOUNT_SERVER_URL in GitHub Actions.');
+  console.error('BUILD BLOCKED: EasyCraft account server URL is missing.');
   process.exit(1);
 }
 let u;

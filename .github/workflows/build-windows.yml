@@ -36,7 +36,6 @@ jobs:
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
           GITHUB_REPOSITORY: ${{ github.repository }}
-          EASYCRAFT_ACCOUNT_SERVER_URL: ${{ secrets.EASYCRAFT_ACCOUNT_SERVER_URL }}
 
       - name: Build and publish update release
         if: ${{ startsWith(github.ref, 'refs/tags/v') }}
@@ -45,7 +44,6 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          EASYCRAFT_ACCOUNT_SERVER_URL: ${{ secrets.EASYCRAFT_ACCOUNT_SERVER_URL }}
 
       - name: Upload Windows build
         uses: actions/upload-artifact@v4
