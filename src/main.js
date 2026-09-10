@@ -13,7 +13,7 @@ let activeLauncher = null;
 const preparedLaunchers = new Map();
 let accountRefreshedAt = 0;
 
-const APP_UA = 'EasyCraftLauncher/0.4.13-beta.11 (Minecraft launcher; encrypted EasyCraft account vault sync; Modrinth integration)';
+const APP_UA = 'EasyCraftLauncher/0.4.13-beta.11.3 (Minecraft launcher; encrypted EasyCraft account vault sync; Modrinth integration)';
 const MODRINTH_API = 'https://api.modrinth.com/v2';
 const CONTENT_TYPES = {
   mods: { folder: 'mods', extensions: ['.jar'], projectType: 'mod' },
@@ -370,7 +370,43 @@ function configuredAccountServerUrl() {
   if (fromEnv) return normalizeAccountServerUrl(fromEnv);
   let bundled = '';
   try { bundled = String(require('./account-server.json')?.baseUrl || '').trim(); } catch {}
-  return normalizeAccountServerUrl(bundled);
+  const base = normalizeAccountServerUrl(bundled);
+  let parsed = null;
+  try { parsed = new URL(base); } catch {}
+  const loopback = parsed && ['127.0.0.1', 'localhost', '::1'].includes(String(parsed.hostname || '').toLowerCase());
+  if (app.isPackaged && loopback && process.env.EASYCRAFT_ALLOW_LOCAL_ACCOUNT_SERVER !== '1') {
+    const err = new Error('이 EasyCraft 빌드에 ngrok 계정 서버 터널 주소가 설정되지 않았습니다. 현재 주소가 로컬 테스트용(127.0.0.1/localhost)입니다.');
+    err.scope = 'account-server-config';
+    err.serverUrl = base;
+    throw err;
+  }
+  return base;
+}
+function accountServerDisplayHost() {
+  try {
+    const u = new URL(configuredAccountServerUrl());
+    return u.host;
+  } catch { return '미설정'; }
+}
+function wrapAccountServerError(error, stage='connect') {
+  if (error?.scope === 'account-server' || error?.scope === 'account-server-config') return error;
+  const raw = String(error?.message || error || '알 수 없는 오류');
+  const err = new Error(raw);
+  err.scope = 'account-server';
+  err.stage = stage;
+  err.serverUrl = (() => { try { return configuredAccountServerUrl(); } catch { return ''; } })();
+  err.causeText = raw;
+  return err;
+}
+function friendlyAccountServerError(error) {
+  const raw = String(error?.message || error || 'EasyCraft 계정 서버 오류');
+  if (error?.scope === 'account-server-config' || /로컬 테스트용|계정 서버 주소가.*설정/i.test(raw)) {
+    return 'EasyCraft 계정 서버 주소가 빌드에 설정되지 않았습니다. Weird Host의 공개 서버 주소를 먼저 Launcher에 넣고 다시 빌드해 주세요.';
+  }
+  if (/ENOTFOUND|EAI_AGAIN|getaddrinfo/i.test(raw)) return `EasyCraft 계정 서버 주소를 찾지 못했습니다 (${accountServerDisplayHost()}). Weird Host 주소가 맞는지 확인해 주세요.`;
+  if (/ECONNREFUSED|ECONNRESET|fetch failed|network|socket|timeout|timed out|응답 시간 초과/i.test(raw)) return `EasyCraft 계정 서버에 연결하지 못했습니다 (${accountServerDisplayHost()}). Weird Host 서버가 실행 중인지와 포트/주소를 확인해 주세요.`;
+  if (/HTTP 404|Not Found/i.test(raw)) return `EasyCraft 계정 서버 주소가 올바르지 않습니다 (${accountServerDisplayHost()}). /health가 열리는 서버 주소인지 확인해 주세요.`;
+  return raw;
 }
 function hmacBuffer(key, text) {
   return crypto.createHmac('sha256', key).update(String(text), 'utf8').digest();
@@ -521,17 +557,34 @@ async function clearLauncherSession() {
   await fsp.rm(launcherSessionPath(), { force:true }).catch(() => {});
 }
 async function accountServerUnsigned(pathname, { method='GET', body=null, timeoutMs=15000 } = {}) {
-  const base = configuredAccountServerUrl();
+  let base;
+  try { base = configuredAccountServerUrl(); }
+  catch (error) { throw wrapAccountServerError(error, 'config'); }
   const url = `${base}${pathname.startsWith('/') ? pathname : `/${pathname}`}`;
   const bodyText = body === null ? '' : JSON.stringify(body);
   const headers = { 'Accept':'application/json', 'User-Agent':APP_UA };
   if (body !== null) headers['Content-Type'] = 'application/json';
-  const res = await fetchWithTimeout(url, { method, headers, body: body === null ? undefined : bodyText }, timeoutMs);
+  let res;
+  try {
+    res = await fetchWithTimeout(url, { method, headers, body: body === null ? undefined : bodyText }, timeoutMs);
+  } catch (error) {
+    throw wrapAccountServerError(error, pathname === '/health' ? 'health' : 'request');
+  }
   let data = {};
   try { data = JSON.parse(await res.text()); } catch {}
   if (!res.ok || data?.ok === false) {
     const err = new Error(data?.error || `EasyCraft 계정 서버 오류 (HTTP ${res.status})`);
     err.status = res.status; err.needLogin = !!data?.needLogin || res.status === 401;
+    err.scope = 'account-server'; err.stage = 'http'; err.serverUrl = base;
+    throw err;
+  }
+  return data;
+}
+async function accountServerHealth() {
+  const data = await accountServerUnsigned('/health', { timeoutMs:8000 });
+  if (data?.service !== 'easycraft-account' || data?.protocol !== 'easycraft-account-v2-srp') {
+    const err = new Error('연결된 서버가 EasyCraft Account Server beta.11 계열이 아닙니다.');
+    err.scope = 'account-server'; err.stage = 'health';
     throw err;
   }
   return data;
@@ -562,7 +615,12 @@ async function accountServerSigned(pathname, { method='GET', body=null, session=
     'X-EC-Session':saved.sessionId, 'X-EC-Time':String(timestamp), 'X-EC-Nonce':nonce, 'X-EC-Signature':signature
   };
   if (body !== null) headers['Content-Type'] = 'application/json';
-  const res = await fetchWithTimeout(url, { method, headers, body: body === null ? undefined : bodyText }, timeoutMs);
+  let res;
+  try {
+    res = await fetchWithTimeout(url, { method, headers, body: body === null ? undefined : bodyText }, timeoutMs);
+  } catch (error) {
+    throw wrapAccountServerError(error, 'signed-request');
+  }
   const responseText = await res.text();
   const responseBuffer = Buffer.from(responseText, 'utf8');
   const responseSig = String(res.headers.get('x-ec-response-signature') || '').toLowerCase();
@@ -575,6 +633,7 @@ async function accountServerSigned(pathname, { method='GET', body=null, session=
   if (!res.ok || data?.ok === false) {
     const err = new Error(data?.error || `EasyCraft 계정 서버 오류 (HTTP ${res.status})`);
     err.status = res.status; err.needLogin = !!data?.needLogin || res.status === 401;
+    err.scope = 'account-server'; err.stage = 'signed-http'; err.serverUrl = base;
     throw err;
   }
   return data;
@@ -583,6 +642,7 @@ async function accountServerLogin(username, password) {
   const cleanUser = String(username || '').trim();
   const secret = String(password || '');
   if (!cleanUser || !secret) throw new Error('EasyCraft 계정 ID와 비밀번호를 입력해 주세요.');
+  await accountServerHealth();
   const a = randomSrpPrivate();
   const A = modPow(SRP_G, a, SRP_N);
   const start = await accountServerUnsigned('/api/auth/srp/start', {
@@ -1080,9 +1140,11 @@ ipcMain.handle('login-launcher-account', async (_event, username, password) => {
       send('status', { text: `${result.account?.name || 'Minecraft 계정'} 동기화 완료`, kind: 'success' });
       return { ok:true, needLink:false, needRelink:false, account:result.account, username:result.username };
     } catch (error) {
-      const message = friendlyMicrosoftAuthError(error);
-      send('status', { text: `로그인 실패: ${message}`, kind: 'error' });
-      return { ok:false, error:message };
+      const isAccountServerError = error?.scope === 'account-server' || error?.scope === 'account-server-config';
+      const message = isAccountServerError ? friendlyAccountServerError(error) : friendlyMicrosoftAuthError(error);
+      const prefix = isAccountServerError ? 'EasyCraft 계정 서버 연결 실패' : '로그인 실패';
+      send('status', { text: `${prefix}: ${message}`, kind: 'error' });
+      return { ok:false, error:message, errorType:isAccountServerError ? 'account-server' : 'microsoft', technical:String(error?.causeText || error?.technical || error?.message || '') };
     } finally {
       activeLauncherAccountLogin = null;
     }
@@ -2329,7 +2391,7 @@ ipcMain.handle('launch-game', async (_event, id) => {
   activeLauncher = ref;
   emitLaunchState('preparing', id, { name:instance.name });
   send('launch-progress', { percent:2, text:`${instance.name} 준비 중…` });
-  await appendLauncherLog(id, `LAUNCH 0.4.13-beta.11 ${instance.name} mc=${instance.version} loader=${instance.loader} auth=${offlineFallback ? 'cached-offline' : 'online'} root=${root}`);
+  await appendLauncherLog(id, `LAUNCH 0.4.13-beta.11.3 ${instance.name} mc=${instance.version} loader=${instance.loader} auth=${offlineFallback ? 'cached-offline' : 'online'} root=${root}`);
   startLaunchWatchdog(ref);
   spawnMinecraftWorker(ref);
   return { ok:true, isolatedWorker:true, config, versionChanges:automatic.changes, offlineMode:offlineFallback };

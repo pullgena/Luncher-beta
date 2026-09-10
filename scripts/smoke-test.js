@@ -56,6 +56,8 @@ for (const required of [
   "new Microsoft().getAuth()",
   "new Microsoft().refresh(stored)",
   "accountServerUnsigned('/api/auth/srp/start'",
+  "accountServerHealth()",
+  "friendlyAccountServerError(error)",
   "accountServerUnsigned('/api/auth/srp/finish'",
   "accountServerSigned('/api/vault'",
   "createCipheriv('aes-256-gcm'",
@@ -72,6 +74,7 @@ if (!fs.existsSync(path.join(root, 'src', 'account-server.json'))) fail('bundled
 
 const serverConfig = JSON.parse(fs.readFileSync(path.join(root, 'src', 'account-server.json'), 'utf8'));
 if (serverConfig.protocol !== 'easycraft-account-v2-srp') fail('account-server.json protocol is not easycraft-account-v2-srp');
+if (serverConfig.baseUrl && /^(?:https?:\/\/)?(?:127\.0\.0\.1|localhost)(?::|\/|$)/i.test(serverConfig.baseUrl)) fail('release source must not ship with a loopback account server URL');
 
 const conflictMarkers = ['<<<<<<<', '=======', '>>>>>>>'];
 for (const [name, text] of [['renderer.js', renderer], ['preload.js', preload], ['main.js', main], ['index.html', html]]) {
@@ -79,5 +82,5 @@ for (const [name, text] of [['renderer.js', renderer], ['preload.js', preload], 
 }
 
 if (!process.exitCode) {
-  console.log(`SMOKE OK: ${rendererIdRefs.size} UI ids, ${directHandlers.size} handlers, ${invoked.size} IPC invokes, beta.11 account-vault invariants checked.`);
+  console.log(`SMOKE OK: ${rendererIdRefs.size} UI ids, ${directHandlers.size} handlers, ${invoked.size} IPC invokes, beta.11.3 account-server diagnostics + account-vault invariants checked.`);
 }

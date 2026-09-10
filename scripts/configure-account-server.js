@@ -5,15 +5,22 @@ const target = path.join(root, 'src', 'account-server.json');
 const envValue = String(process.env.EASYCRAFT_ACCOUNT_SERVER_URL || '').trim();
 let existing = '';
 try { existing = String(JSON.parse(fs.readFileSync(target, 'utf8')).baseUrl || '').trim(); } catch {}
-const value = envValue || existing;
+let value = envValue || existing;
+if (value && !/^https?:\/\//i.test(value)) value = 'https://' + value;
 if (!value) {
-  console.error('EasyCraft account server URL is missing. Run SET_WEIRD_HOST_SERVER.bat first or set EASYCRAFT_ACCOUNT_SERVER_URL.');
+  console.error('BUILD BLOCKED: ngrok tunnel domain is missing. Run SET_NGROK_TUNNEL.bat or set EASYCRAFT_ACCOUNT_SERVER_URL in GitHub Actions.');
   process.exit(1);
 }
 let u;
-try { u = new URL(value); } catch { console.error('Invalid EasyCraft account server URL.'); process.exit(1); }
+try { u = new URL(value); } catch { console.error('BUILD BLOCKED: Invalid EasyCraft account server URL.'); process.exit(1); }
 if (!['http:', 'https:'].includes(u.protocol)) {
-  console.error('EasyCraft account server URL must start with http:// or https://.');
+  console.error('BUILD BLOCKED: EasyCraft account server URL must start with http:// or https://.');
+  process.exit(1);
+}
+const loopback = ['127.0.0.1', 'localhost', '::1'].includes(String(u.hostname || '').toLowerCase());
+if (!loopback && u.protocol !== 'https:') { console.error('BUILD BLOCKED: remote EasyCraft account server must use HTTPS (ngrok domain).'); process.exit(1); }
+if (loopback && process.env.EASYCRAFT_ALLOW_LOCAL_ACCOUNT_SERVER !== '1') {
+  console.error('BUILD BLOCKED: 127.0.0.1/localhost is only for local testing. Put the ngrok HTTPS domain in EASYCRAFT_ACCOUNT_SERVER_URL.');
   process.exit(1);
 }
 const normalized = value.replace(/\/+$/, '');

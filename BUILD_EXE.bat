@@ -2,7 +2,7 @@
 setlocal
 cd /d "%~dp0"
 echo ===============================================
-echo  EasyCraft Launcher beta.11 Windows build
+echo  EasyCraft Launcher beta.11.3 Windows build
 echo ===============================================
 echo.
 echo Before building, run SET_WEIRD_HOST_SERVER.bat once.
